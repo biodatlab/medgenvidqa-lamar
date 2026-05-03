@@ -3,7 +3,7 @@ This repository contains the official code, prompts, and evaluation scripts for 
 ## System Overview
 We frame visual answer localization as a multimodal fusion problem, integrating raw video, timestamped ASR transcripts, and VLM-generated scene descriptions into structured contextual blocks, enabling the model to cross-reference spoken commentary against observable physical events. We show that targeted guidance, which forces the model to treat audio transcripts as supplementary hints with observable visual movements.
 ## Approach
-<img src="asset/pipelineVLM.png" width="800" alt="LAMAR-2 Pipeline Architecture">
+<img src="asset/pipelineVLM.png" width="600" alt="LAMAR-2 Pipeline Architecture">
 
 ##  Repository Structure
 ```text
