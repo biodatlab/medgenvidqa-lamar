@@ -11,13 +11,19 @@ We frame visual answer localization as a multimodal fusion problem, integrating 
 
 ##  Repository Structure
 ```text
-├── data/                  # MedGenVidQA video data and annotations
+├── asset/                 # Images and diagrams for the README
+│   └── pipelineVLM.png    # LAMAR-2 pipeline architecture diagram
+├── data/                  
+│   ├── queries/           # JSON files with questions and video URLs (e.g., task_c_test.json)
+│   ├── raw_videos/        # Downloaded MedGenVidQA mp4 files
+│   └── predictions/       # Output JSON files containing the LLM-predicted timestamps
 ├── prompts/               # JSON templates for Zero-Shot, Strict, CoT, and Heuristic Loose
 ├── src/
-│   ├── 01_asr_pipeline.py # Qwen3-ASR-1.7B word-level timestamp generation
-│   ├── 02_scene_vlm.py    # PySceneDetect + Qwen3-VL-8B description generation
-│   ├── 03_fusion.py       # Aligns transcripts with scene descriptions
-│   └── 04_evaluate.py     # Gemini-3-Flash inference and IoU calculation
+│   ├── 00_download_videos.py    # Downloads dataset from JSON URLs
+│   ├── 01_asr_pipeline.py       # Qwen3-ASR-1.7B word-level timestamp generation
+│   ├── 02_scene_vlm.py          # PySceneDetect + Qwen3-VL-8B description generation
+│   ├── 03_fusion.py             # Aligns transcripts with scene descriptions
+│   ├── 04_predict_timestamps.py # Gemini-3-Flash LLM inference to predict start/end boundaries
+│   └── 05_evaluate.py           # Calculates IoU thresholds (0.3, 0.5, 0.7) and mIoU
 ├── requirements.txt       # Python dependencies 
-├── column_framework.png   # Pipeline architecture diagram
-└── README.md
+└── README.md              # Project documentation
