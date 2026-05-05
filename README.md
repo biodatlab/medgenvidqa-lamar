@@ -28,7 +28,14 @@ We frame visual answer localization as a multimodal fusion problem, integrating 
 ├── requirements.txt       # Python dependencies 
 └── README.md              # Project documentation
 ```
-
+## Setup
+```bash
+git clone [https://github.com/biodatlab/medgenvidqa-lamar.git](https://github.com/biodatlab/medgenvidqa-lamar.git)
+cd medgenvidqa-lamar
+conda create -n lamar_env python=3.10
+conda activate lamar_env
+pip install -r requirements.txt
+```
 ## Usage
 ### 1. Data Preparation
 Download the official test JSON file containing the queries and video links directly into the `data/queries/` directory:
