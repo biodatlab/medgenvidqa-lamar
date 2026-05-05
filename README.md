@@ -27,3 +27,17 @@ We frame visual answer localization as a multimodal fusion problem, integrating 
 │   └── 05_evaluate.py           # Calculates IoU thresholds (0.3, 0.5, 0.7) and mIoU
 ├── requirements.txt       # Python dependencies 
 └── README.md              # Project documentation
+```
+
+## Usage
+### 1. Data Preparation
+Download the official test JSON file containing the queries and video links directly into the `data/queries/` directory:
+```bash
+# Download the test JSON file from Google Drive
+gdown 1UukkM5ppCyFwhEpK6C7YzKfyKgonTo77 -O data/queries/task_c_test.json
+```
+Download all the corresponding .mp4 videos into the data/raw_videos/ directory:
+```bash
+# Download videos based on the URLs in the JSON file
+python src/00_download_videos.py --json_path data/queries/task_c_test.json --output_dir data/raw_videos/
+```
