@@ -1,0 +1,7 @@
+requests
+torch
+qwen-asr
+scenedetect
+transformers
+qwen-vl-utils
+google-genai
