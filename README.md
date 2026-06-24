@@ -48,3 +48,40 @@ Download all the corresponding .mp4 videos into the data/raw_videos/ directory:
 # Download videos based on the URLs in the JSON file
 python src/00_download_videos.py --json_path data/queries/task_c_test.json --output_dir data/raw_videos/
 ```
+### 2. Feature Extraction
+Generate the word-level ASR timestamps and the visual scene descriptions using Qwen3-ASR and PySceneDetect + Qwen3-VL:
+```bash
+python src/01_asr_pipeline.py --video_dir data/raw_videos/ --output_dir data/asr_outputs/
+python src/02_scene_vlm.py --video_dir data/raw_videos/ --output_dir data/scene_outputs/
+```
+### 3. Multimodal Fusion
+Align the transcripts with the visual scene descriptions. This step utilizes our sliding-window text alignment algorithm to map the contextual text back to the original ASR word boundaries, ensuring high temporal accuracy before passing the context to the LLM.
+```bash
+python src/03_fusion.py --asr_dir data/asr_outputs/ --scene_dir data/scene_outputs/ --output_dir data/fused_context/
+```
+### 4. Timestamp Prediction
+Run the LLM inference to predict the precise start and end boundaries. You can specify the prompt template (e.g., zero_shot, strict, cot, or heuristic_loose) from the prompts/ directory.
+```bash
+python src/04_predict_timestamps.py \
+    --context_dir data/fused_context/ \
+    --prompt_type heuristic_loose \
+    --output_dir data/predictions/
+```
+### 5. Evaluation
+Evaluate the predicted timestamps against the ground truth. This script calculates the Mean Intersection over Union (mIoU) and the Success Rates at varying IoU thresholds (0.3, 0.5, and 0.7) to benchmark against the leaderboard.
+```bash
+python src/05_evaluate.py \
+    --pred_dir data/predictions/ \
+    --gt_path data/queries/task_c_test.json
+```
+
+## Citation
+If you use the LAMAR-2 pipeline or our Context-Augmented Prompting templates in your research, please cite our BioNLP 2026 paper:
+```bash
+@inproceedings{sermsrisuwan2026lamar2,
+  title={LAMAR-2 at MedGenVidQA 2026: Visual Answer Localization in Medical Videos via Multimodal LLM and Context-Augmented Prompting},
+  author={Sermsrisuwan, Watcharitpol and [Co-Authors]},
+  booktitle={Proceedings of the BioNLP Shared Task at ACL 2026},
+  year={2026}
+}
+```
