@@ -4,95 +4,6 @@ import time
 import argparse
 from google import genai
 
-# --- PROMPT TEMPLATES ---
-PROMPTS = {
-    "zero_shot": """
-You are an expert medical consultationist. You will be given a question related to the medical field. The supplement you will be provided is a medical content related video.
-
-**Your Task:**
-Identify the start and end timestamps for the entire segment in the video that comprehensively answers the given question.
-DO NOT output the text of the answer. Only output the timestamps.
-
-**Output Format:**
-You MUST output a valid JSON object ONLY. Use the following exact keys:
-{{
-  "answer_start": "MM:SS",
-  "answer_end": "MM:SS",
-  "answer_start_second": integer,
-  "answer_end_second": integer
-}}
-
-Your question: {question}
-""",
-
-    "strict": """
-You are an expert medical video analyst. Your task is to identify the exact, continuous video segment that answers a given medical question using the provided video, visual context, and audio transcripts.
-
-**Core Directives:**
-1. **Visuals > Audio:** Visual evidence is the absolute priority; audio is strictly for verification. Do not select segments where the action/anatomy is discussed but not visually demonstrated.
-2. **Tight Surgical Boundaries:** Timestamps must strictly bound the active physical procedure. Exclude all introductions, verbal planning, and text slides. Start exactly when the real operation begins and end exactly when it finishes.
-3. **Visual Hierarchy:** If actual surgical footage is unavailable, fallback to a physical demonstration. If that is also unavailable, fallback to a text-based explanation.
-
-**Output Format:**
-Output ONLY a valid JSON object. Do not include any conversational text, markdown formatting outside the JSON, or explanations outside the "reasoning" key.
-
-{{
-  "reasoning": "Brief explanation prioritizing why the visual context (supported by audio) answers the question.",
-  "answer_start": "MM:SS",
-  "answer_end": "MM:SS"
-}}
-
-**Inputs:**
-**The Question:** {question}
-**Context and Transcription:** {Additional}
-""",
-
-    "cot": """
-You are an expert medical video analyst. Your task is to identify the exact, continuous video segment that answers a given medical question using the provided video, visual context, and audio transcripts.
-
-**Core Directives:**
-1. **Visuals > Audio:** Visual evidence is the absolute priority; audio is strictly for verification. Do not select segments where the action/anatomy is discussed but not visually demonstrated.
-2. **Tight Surgical Boundaries:** Timestamps must strictly bound the active physical procedure. Exclude all introductions, verbal planning, and text slides. Start exactly when the real operation begins and end exactly when it finishes.
-3. **Do Not Echo Context:** The provided context and transcripts are rough temporal guides, NOT the final answer. You must independently discover the micro-boundaries within them. Never blindly copy the timestamps or durations of the provided input chunks.
-4. **Visual Hierarchy:** If actual surgical footage is unavailable, fallback to a physical demonstration. If that is also unavailable, fallback to a text-based explanation.
-5. **Visual Anchoring (Mandatory):** You must explicitly describe the exact visual event that marks the start and end of the segment BEFORE outputting timestamps.
-
-**Output Format:**
-Output ONLY a valid JSON object. Do not include any conversational text, markdown formatting outside the JSON, or explanations outside the specified keys.
-
-{{
-  "visual_start_anchor": "Describe the exact visual frame where the answer physically begins (e.g., 'Scalpel makes first contact with skin').",
-  "visual_end_anchor": "Describe the exact visual frame where the answer physically concludes (e.g., 'Suture is cut and tool is removed from frame').",
-  "reasoning": "Brief explanation of how these visual anchors directly answer the question, ensuring the timestamps are tighter than the provided transcript chunks.",
-  "answer_start": "MM:SS",
-  "answer_end": "MM:SS"
-}}
-
-**Inputs:**
-**The Question:** {question}
-**Rough Segments (Context/Audio):** {Additional}
-""",
-
-    "heuristic_loose": """
-Role: Expert Medical Video Analyst.
-Task: Identify the exact video segment that answers the question.
-
-Question: {question}
-Reference Notes (Transcripts & Scenes): {Additional}
-
-Instructions:
-Watch the video. The Reference Notes are provided only as a background hint. You must determine the precise start and end timestamps purely by observing the physical procedure in the video footage.
-
-Output ONLY a valid JSON object:
-{{
-  "first_physical_movement": "Briefly state the visual action that starts the segment.",
-  "final_physical_movement": "Briefly state the visual action that ends the segment.",
-  "answer_start": "MM:SS",
-  "answer_end": "MM:SS"
-}}
-"""
-}
-
 def get_processed_tasks(output_filepath):
     """Reads the output file and returns a set of (video_id, question) tuples already processed."""
     processed = set()
@@ -136,8 +47,12 @@ def load_additional_data(jsonl_path):
 
 def main():
     parser = argparse.ArgumentParser(description="Predict video timestamps using Gemini-3-Flash.")
-    parser.add_argument("--query_file", type=str, required=True, help="Path to JSON file containing queries (e.g., task_c_test.json)")
-    parser.add_argument("--video_dir", type=str, required=True, help="Path to raw mp4 videos")
+    # Set default paths to match the README usage
+    parser.add_argument("--query_file", type=str, default="data/queries/task_c_test.json", help="Path to JSON file containing queries")
+    parser.add_argument("--video_dir", type=str, default="data/raw_videos/", help="Path to raw mp4 videos")
+    parser.add_argument("--prompts_file", type=str, default="prompts/prompts.json", help="Path to the prompts JSON file")
+    
+    # Required arguments matching the bash command
     parser.add_argument("--context_dir", type=str, required=True, help="Path to fused master context JSONL files")
     parser.add_argument("--prompt_type", type=str, choices=["zero_shot", "strict", "cot", "heuristic_loose"], required=True, help="Which prompt template to use")
     parser.add_argument("--output_dir", type=str, required=True, help="Directory to save the prediction JSONL files")
@@ -152,6 +67,14 @@ def main():
     if not os.path.exists(args.query_file):
         print(f"❌ Query file not found: {args.query_file}")
         return
+
+    if not os.path.exists(args.prompts_file):
+        print(f"❌ Prompts file not found: {args.prompts_file}. Please ensure it exists.")
+        return
+
+    # Load prompt templates dynamically
+    with open(args.prompts_file, 'r', encoding='utf-8') as f:
+        PROMPTS = json.load(f)
 
     with open(args.query_file, 'r', encoding='utf-8') as f:
         test_data = json.load(f)
